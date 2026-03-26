@@ -1,0 +1,9 @@
+{
+  "name": "spectr1fy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo \"window.APP_CONFIG = { LASTFM_API_KEY: '$LASTFM_API_KEY', LASTFM_SHARED_SECRET: '$LASTFM_SHARED_SECRET' };\" > config.js",
+    "vercel-build": "echo \"window.APP_CONFIG = { LASTFM_API_KEY: '$LASTFM_API_KEY', LASTFM_SHARED_SECRET: '$LASTFM_SHARED_SECRET' };\" > config.js"
+  }
+}

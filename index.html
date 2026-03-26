@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>spectr1fy</title>
+
+  <!--
+    connect-src: ws.audioscrobbler.com for Last.fm API calls
+    img-src: https: covers Last.fm's various CDN domains for album art
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src  'self';
+    style-src   'self';
+    font-src    'self';
+    img-src     'self' https: data: blob:;
+    connect-src 'self' https://ws.audioscrobbler.com;
+    media-src   'self' blob:;
+    frame-ancestors 'none';
+  "/>
+
+  <meta http-equiv="X-Content-Type-Options"    content="nosniff"/>
+  <meta http-equiv="X-Frame-Options"           content="DENY"/>
+  <meta http-equiv="Referrer-Policy"           content="strict-origin-when-cross-origin"/>
+  <meta http-equiv="Permissions-Policy"
+        content="display-capture=(self), camera=(), microphone=()"/>
+
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+
+<!-- ─── LOGIN ──────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div>
+    <div class="login-title">spectr1fy</div>
+  </div>
+
+  <button id="login-btn" class="lastfm-btn" type="button">
+    <img src="assets/images/lastfmlogo.png" width="25" height="25" alt="Last.fm logo"/>
+    Login with Last.fm
+  </button>
+
+  <footer class="site-footer">
+    made with 💙 by <a href="https://github.com/ayaanma" target="_blank" rel="noopener noreferrer">ayaan malik</a>
+  </footer>
+</div><!-- /#login-screen -->
+
+
+<!-- ─── VISUALIZER ─────────────────────────────────────────── -->
+<div id="visualizer-screen">
+  <div id="bg-glow" aria-hidden="true"></div>
+
+  <div id="top-bar">
+    <button id="logout-btn" type="button">Logout</button>
+  </div>
+
+  <!-- Audio capture prompt -->
+  <div id="audio-prompt" role="dialog" aria-modal="true" aria-labelledby="audio-prompt-title">
+    <div class="audio-prompt-icon" aria-hidden="true">🎧</div>
+    <div id="audio-prompt-title" class="audio-prompt-title">Let's get you set up.</div>
+    <div class="audio-prompt-sub">
+      To feed the visualizer audio you'll have to share your screen. Click <em>Share System Audio</em> and choose your Spotify tab. No screen content is used, only the audio stream. 
+    </div>
+    <div class="audio-btn-row">
+      <button id="grant-audio-btn" class="audio-btn audio-btn-primary" type="button">
+        Share System Audio
+      </button>
+    </div>
+    <div class="why-row">
+      <span id="why-trigger" class="why-link" tabindex="0" role="button" aria-describedby="why-tooltip">
+        Why do you need to share your screen?
+      </span>
+      <div id="why-tooltip" class="why-tooltip" role="tooltip">
+        Spotify removed real-time audio data from their API in 2024, so the visualizer
+        needs to hear your audio directly. Screen sharing is the only way browsers can
+        capture system audio. No audio data is ever processed, stored, or transmitted —
+        everything runs locally in your browser.
+      </div>
+    </div>
+  </div><!-- /#audio-prompt -->
+
+  <!-- Album art + track info -->
+  <div id="album-section">
+    <img id="album-art" src="" alt="Album artwork" crossorigin="anonymous"/>
+    <div id="track-info">
+      <div id="track-name" aria-live="polite">—</div>
+      <div id="artist-name" aria-live="polite">—</div>
+    </div>
+  </div>
+
+  <!-- Idle state -->
+  <div id="idle-state" aria-live="polite">
+    <div class="idle-bars" aria-hidden="true">
+      <div class="idle-bar"></div>
+      <div class="idle-bar"></div>
+      <div class="idle-bar"></div>
+      <div class="idle-bar"></div>
+      <div class="idle-bar"></div>
+    </div>
+    <div class="idle-label">Play something on Spotify</div>
+  </div>
+
+  <canvas id="wave-canvas" aria-hidden="true"></canvas>
+
+  <!-- Progress bar — full gradient, no fill tracking, fullscreen on left -->
+  <div id="progress-section">
+    <div id="time-row">
+      <!-- Fullscreen moved to left -->
+      <button id="fullscreen-btn" type="button" aria-label="Toggle fullscreen" title="Fullscreen">
+        <svg id="icon-expand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+        <svg id="icon-compress" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+          <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+        </svg>
+      </button>
+      <!-- Track duration -->
+      <span id="time-total" aria-label="Track duration">0:00</span>
+    </div>
+    <!-- Full-width gradient bar -->
+    <div id="progress-track">
+      <div id="progress-fill"></div>
+    </div>
+    <footer class="site-footer site-footer--visualizer">
+      made with 💙 by <a href="https://github.com/ayaanma" target="_blank" rel="noopener noreferrer">ayaan malik</a>
+    </footer>
+  </div><!-- /#progress-section -->
+
+</div><!-- /#visualizer-screen -->
+
+<script src="config.js"></script>
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>
+
