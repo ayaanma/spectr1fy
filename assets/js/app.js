@@ -3,19 +3,19 @@
 /* ──────────────────────────────────────────────────────────
    CONFIG 
    ────────────────────────────────────────────────────────── */
-let LASTFM_API_KEY    = '';
-let LASTFM_SECRET     = '';
-
-const _path        = window.location.pathname.replace(/\/index\.html$/i, '/');
+let LASTFM_API_KEY = '';
+const _path = window.location.pathname.replace(/\/index\.html$/i, '/');
 const REDIRECT_URI = window.location.origin + _path;
 
 async function loadConfig() {
-  if (window.APP_CONFIG) {
-    LASTFM_API_KEY = window.APP_CONFIG.LASTFM_API_KEY     || '';
-    LASTFM_SECRET  = window.APP_CONFIG.LASTFM_SHARED_SECRET || '';
-  }
-  if (!LASTFM_API_KEY) {
-    console.error('[spectr1fy] Missing LASTFM_API_KEY in config.js');
+  // optional: fetch only public config from your own API
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error('Failed to load config');
+    const data = await res.json();
+    LASTFM_API_KEY = data.LASTFM_API_KEY || '';
+  } catch (err) {
+    console.error('[spectr1fy] Failed to load public config', err);
   }
 }
 
@@ -38,95 +38,8 @@ function applyBackoff() {
 function resetBackoff() { backoffMs = 0; backoffUntil = 0; }
 
 /* ──────────────────────────────────────────────────────────
-   MD5  — required for Last.fm API signature (auth.getSession)
-   Based on the Joseph Myers / Paul Johnston implementation.
-   ────────────────────────────────────────────────────────── */
-function md5(str) {
-  function safeAdd(x, y) {
-    const lsw = (x & 0xffff) + (y & 0xffff);
-    const msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-    return (msw << 16) | (lsw & 0xffff);
-  }
-  function rotL(n, c) { return (n << c) | (n >>> (32 - c)); }
-  function cmn(q, a, b, x, s, t) {
-    return safeAdd(rotL(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b);
-  }
-  const F = (a,b,c,d,x,s,t) => cmn((b & c) | (~b & d), a, b, x, s, t);
-  const G = (a,b,c,d,x,s,t) => cmn((b & d) | (c & ~d), a, b, x, s, t);
-  const H = (a,b,c,d,x,s,t) => cmn(b ^ c ^ d, a, b, x, s, t);
-  const I = (a,b,c,d,x,s,t) => cmn(c ^ (b | ~d), a, b, x, s, t);
-
-  // UTF-8 encode
-  const s8 = unescape(encodeURIComponent(str));
-
-  // String → little-endian word array
-  const bin = [];
-  for (let i = 0; i < s8.length * 8; i += 8) {
-    bin[i >> 5] |= (s8.charCodeAt(i / 8) & 0xff) << (i % 32);
-  }
-  bin[s8.length >> 2] |= 0x80 << (s8.length % 4 * 8);
-  bin[(((s8.length + 8) >> 6) << 4) + 14] = s8.length * 8;
-
-  let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
-  for (let i = 0; i < bin.length; i += 16) {
-    const [oa, ob, oc, od] = [a, b, c, d];
-    a=F(a,b,c,d,bin[i   ], 7,-680876936);  d=F(d,a,b,c,bin[i+ 1],12,-389564586);
-    c=F(c,d,a,b,bin[i+ 2],17, 606105819);  b=F(b,c,d,a,bin[i+ 3],22,-1044525330);
-    a=F(a,b,c,d,bin[i+ 4], 7,-176418897);  d=F(d,a,b,c,bin[i+ 5],12,1200080426);
-    c=F(c,d,a,b,bin[i+ 6],17,-1473231341); b=F(b,c,d,a,bin[i+ 7],22,-45705983);
-    a=F(a,b,c,d,bin[i+ 8], 7,1770035416);  d=F(d,a,b,c,bin[i+ 9],12,-1958414417);
-    c=F(c,d,a,b,bin[i+10],17,-42063);       b=F(b,c,d,a,bin[i+11],22,-1990404162);
-    a=F(a,b,c,d,bin[i+12], 7,1804603682);  d=F(d,a,b,c,bin[i+13],12,-40341101);
-    c=F(c,d,a,b,bin[i+14],17,-1502002290); b=F(b,c,d,a,bin[i+15],22,1236535329);
-    a=G(a,b,c,d,bin[i+ 1], 5,-165796510);  d=G(d,a,b,c,bin[i+ 6], 9,-1069501632);
-    c=G(c,d,a,b,bin[i+11],14, 643717713);  b=G(b,c,d,a,bin[i   ],20,-373897302);
-    a=G(a,b,c,d,bin[i+ 5], 5,-701558691);  d=G(d,a,b,c,bin[i+10], 9,38016083);
-    c=G(c,d,a,b,bin[i+15],14,-660478335);  b=G(b,c,d,a,bin[i+ 4],20,-405537848);
-    a=G(a,b,c,d,bin[i+ 9], 5, 568446438);  d=G(d,a,b,c,bin[i+14], 9,-1019803690);
-    c=G(c,d,a,b,bin[i+ 3],14,-187363961);  b=G(b,c,d,a,bin[i+ 8],20,1163531501);
-    a=G(a,b,c,d,bin[i+13], 5,-1444681467); d=G(d,a,b,c,bin[i+ 2], 9,-51403784);
-    c=G(c,d,a,b,bin[i+ 7],14,1735328473);  b=G(b,c,d,a,bin[i+12],20,-1926607734);
-    a=H(a,b,c,d,bin[i+ 5], 4,-378558);     d=H(d,a,b,c,bin[i+ 8],11,-2022574463);
-    c=H(c,d,a,b,bin[i+11],16,1839030562);  b=H(b,c,d,a,bin[i+14],23,-35309556);
-    a=H(a,b,c,d,bin[i+ 1], 4,-1530992060); d=H(d,a,b,c,bin[i+ 4],11,1272893353);
-    c=H(c,d,a,b,bin[i+ 7],16,-155497632);  b=H(b,c,d,a,bin[i+10],23,-1094730640);
-    a=H(a,b,c,d,bin[i+13], 4, 681279174);  d=H(d,a,b,c,bin[i   ],11,-358537222);
-    c=H(c,d,a,b,bin[i+ 3],16,-722521979);  b=H(b,c,d,a,bin[i+ 6],23,76029189);
-    a=H(a,b,c,d,bin[i+ 9], 4,-640364487);  d=H(d,a,b,c,bin[i+12],11,-421815835);
-    c=H(c,d,a,b,bin[i+15],16, 530742520);  b=H(b,c,d,a,bin[i+ 2],23,-995338651);
-    a=I(a,b,c,d,bin[i   ], 6,-198630844);  d=I(d,a,b,c,bin[i+ 7],10,1126891415);
-    c=I(c,d,a,b,bin[i+14],15,-1416354905); b=I(b,c,d,a,bin[i+ 5],21,-57434055);
-    a=I(a,b,c,d,bin[i+12], 6,1700485571);  d=I(d,a,b,c,bin[i+ 3],10,-1894986606);
-    c=I(c,d,a,b,bin[i+10],15,-1051523);    b=I(b,c,d,a,bin[i+ 1],21,-2054922799);
-    a=I(a,b,c,d,bin[i+ 8], 6,1873313359);  d=I(d,a,b,c,bin[i+15],10,-30611744);
-    c=I(c,d,a,b,bin[i+ 6],15,-1560198380); b=I(b,c,d,a,bin[i+13],21,1309151649);
-    a=I(a,b,c,d,bin[i+ 4], 6,-145523070);  d=I(d,a,b,c,bin[i+11],10,-1120210379);
-    c=I(c,d,a,b,bin[i+ 2],15, 718787259);  b=I(b,c,d,a,bin[i+ 9],21,-343485551);
-    a = safeAdd(a,oa); b = safeAdd(b,ob); c = safeAdd(c,oc); d = safeAdd(d,od);
-  }
-
-  // Word array → hex string
-  return [a, b, c, d].map(n =>
-    [0,1,2,3].map(j => {
-      const byte = (n >> (j * 8)) & 0xff;
-      return ('0' + byte.toString(16)).slice(-2);
-    }).join('')
-  ).join('');
-}
-
-/* ──────────────────────────────────────────────────────────
    LAST.FM AUTH
    ────────────────────────────────────────────────────────── */
-
-function lastfmSign(params) {
-  const sig = Object.keys(params)
-    .filter(k => k !== 'format')
-    .sort()
-    .map(k => k + params[k])
-    .join('') + LASTFM_SECRET;
-  return md5(sig);
-}
-
 function login() {
   const url = 'https://www.last.fm/api/auth/?' +
     new URLSearchParams({ api_key: LASTFM_API_KEY, cb: REDIRECT_URI });
@@ -144,7 +57,7 @@ async function lastfmExchangeToken(token) {
 
   let res;
   try {
-    res = await fetch('https://ws.audioscrobbler.com/2.0/?' + new URLSearchParams(params));
+    res = await fetch('/api/lastfm/session?token=' + encodeURIComponent(token));
   } catch { return false; }
 
   if (!res.ok) return false;
