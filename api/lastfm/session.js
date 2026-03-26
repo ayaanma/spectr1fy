@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     const r = await fetch(url);
     const data = await r.json();
     return res.status(r.status).json(data);
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: 'Last.fm request failed' });
   }
 }

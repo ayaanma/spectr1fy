@@ -3,21 +3,8 @@
 /* ──────────────────────────────────────────────────────────
    CONFIG 
    ────────────────────────────────────────────────────────── */
-let LASTFM_API_KEY = '';
 const _path = window.location.pathname.replace(/\/index\.html$/i, '/');
 const REDIRECT_URI = window.location.origin + _path;
-
-async function loadConfig() {
-  // optional: fetch only public config from your own API
-  try {
-    const res = await fetch('/api/config');
-    if (!res.ok) throw new Error('Failed to load config');
-    const data = await res.json();
-    LASTFM_API_KEY = data.LASTFM_API_KEY || '';
-  } catch (err) {
-    console.error('[spectr1fy] Failed to load public config', err);
-  }
-}
 
 /* ──────────────────────────────────────────────────────────
    RATE LIMITING
@@ -41,29 +28,22 @@ function resetBackoff() { backoffMs = 0; backoffUntil = 0; }
    LAST.FM AUTH
    ────────────────────────────────────────────────────────── */
 function login() {
-  const url = 'https://www.last.fm/api/auth/?' +
-    new URLSearchParams({ api_key: LASTFM_API_KEY, cb: REDIRECT_URI });
-  window.location.href = url;
+  window.location.href = '/api/lastfm/login';
 }
 
 async function lastfmExchangeToken(token) {
-  const params = {
-    method:  'auth.getSession',
-    api_key: LASTFM_API_KEY,
-    token,
-  };
-  params.api_sig = lastfmSign(params);
-  params.format  = 'json';
-
   let res;
   try {
     res = await fetch('/api/lastfm/session?token=' + encodeURIComponent(token));
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 
   if (!res.ok) return false;
+
   const data = await res.json().catch(() => null);
   if (data?.session?.key) {
-    localStorage.setItem('lfm_sk',   data.session.key);
+    localStorage.setItem('lfm_sk', data.session.key);
     localStorage.setItem('lfm_user', data.session.name);
     window.history.replaceState({}, '', window.location.pathname);
     return true;
@@ -618,19 +598,14 @@ function bestImage(images) {
 async function getTrackInfo(artist, track) {
   try {
     const res = await fetch(
-      'https://ws.audioscrobbler.com/2.0/?' +
-      new URLSearchParams({
-        method:  'track.getInfo',
-        api_key: LASTFM_API_KEY,
-        artist,
-        track,
-        format:  'json',
-      })
+      '/api/lastfm/track?' + new URLSearchParams({ artist, track })
     );
     if (!res.ok) return null;
     const data = await res.json().catch(() => null);
     return data?.track || null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function pollLastFm() {
@@ -645,14 +620,7 @@ async function pollLastFm() {
   let res;
   try {
     res = await fetch(
-      'https://ws.audioscrobbler.com/2.0/?' +
-      new URLSearchParams({
-        method:  'user.getRecentTracks',
-        user:    username,
-        api_key: LASTFM_API_KEY,
-        limit:   '1',
-        format:  'json',
-      })
+      '/api/lastfm/recent?' + new URLSearchParams({ user: username })
     );
   } catch { applyBackoff(); return; }
 
