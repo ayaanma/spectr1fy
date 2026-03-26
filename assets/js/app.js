@@ -1,12 +1,6 @@
 'use strict';
 
 /* ──────────────────────────────────────────────────────────
-   CONFIG 
-   ────────────────────────────────────────────────────────── */
-const _path = window.location.pathname.replace(/\/index\.html$/i, '/');
-const REDIRECT_URI = window.location.origin + _path;
-
-/* ──────────────────────────────────────────────────────────
    RATE LIMITING
    ────────────────────────────────────────────────────────── */
 const MIN_POLL_INTERVAL_MS = 10000; // Last.fm: poll every 10 s
@@ -774,20 +768,23 @@ document.addEventListener('DOMContentLoaded', () => {
    ────────────────────────────────────────────────────────── */
 
 async function init() {
-  await loadConfig();
-
-  // Last.fm redirects back with ?token= after the user authorises
   const token = new URLSearchParams(window.location.search).get('token');
+
   if (token) {
     const ok = await lastfmExchangeToken(token);
-    if (!ok) { showLogin(); return; }
+    if (!ok) {
+      showLogin();
+      return;
+    }
   }
 
-  if (!isLoggedIn()) { showLogin(); return; }
+  if (!isLoggedIn()) {
+    showLogin();
+    return;
+  }
 
   showVisualizer();
   await pollLastFm();
   setInterval(pollLastFm, MIN_POLL_INTERVAL_MS);
 }
-
 init();
