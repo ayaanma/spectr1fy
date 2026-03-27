@@ -417,6 +417,12 @@ html, body {
   letter-spacing: 0.03em;
   text-align: center;
   padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .site-footer a {
   color: var(--dim);
@@ -430,3 +436,58 @@ html, body {
   text-align: center;
   pointer-events: all;
 }
+
+/* Dot separator between footer items */
+.footer-sep {
+  user-select: none;
+  font-size: 1.3em;
+}
+
+/* Footer tooltip — same look as .why-tooltip, opens upward */
+.footer-why-row {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.footer-why-link {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.18s;
+  white-space: nowrap;
+}
+.footer-why-link:hover { color: var(--text); }
+.footer-why-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  background: rgba(18,18,28,0.97);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.65;
+  text-align: left;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.footer-why-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(18,18,28,0.97);
+}
+.footer-why-row:hover .footer-why-tooltip,
+.footer-why-link:focus .footer-why-tooltip { display: block; }
